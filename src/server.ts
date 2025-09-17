@@ -10,7 +10,7 @@ const app = express();
 const server = http.createServer(app);
 const io = initSocket(server);
 
-app.use(cors({ origin: FRONTEND_URL }));
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 app.use("/api", roomRoutes);
 
