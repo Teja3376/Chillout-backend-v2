@@ -7,7 +7,8 @@ Chillout Backend v2 is a Node.js-based backend service for a real-time chat appl
 ## Features
 
 - Create or retrieve chat rooms by room ID
-- Real-time messaging within rooms
+- Real-time messaging within rooms (text and voice)
+- Voice message upload and retrieval using MongoDB GridFS
 - Track online users per room
 - CORS support for cross-origin requests
 - Environment-based configuration
@@ -103,6 +104,48 @@ Response:
 }
 ```
 
+### POST /api/room/:roomId/voice
+
+Uploads a voice message file to the specified room.
+
+- **Parameters**:
+
+  - `roomId` (string): The unique identifier for the room.
+  - `voice` (file): The voice message file (multipart/form-data).
+  - `username` (string): The username of the sender.
+
+- **Response**:
+  - Status: 200 OK
+  - Body: JSON object with the URL to access the uploaded voice file.
+
+Example:
+
+```
+POST /api/room/abc123/voice
+Content-Type: multipart/form-data
+Body: voice=<file>, username=user1
+```
+
+Response:
+
+```json
+{
+  "url": "/api/voice/507f1f77bcf86cd799439011"
+}
+```
+
+### GET /api/voice/:fileId
+
+Retrieves a voice message file by its GridFS file ID.
+
+- **Parameters**:
+
+  - `fileId` (string): The MongoDB ObjectId of the voice file.
+
+- **Response**:
+  - Status: 200 OK
+  - Body: The voice file data (audio/webm).
+
 ## Socket.IO Events
 
 The backend uses Socket.IO for real-time communication. Connect to the server using a Socket.IO client.
@@ -114,19 +157,28 @@ The backend uses Socket.IO for real-time communication. Connect to the server us
   - Payload: `{ roomId: string, username: string }`
   - Emits: `online_users` to all in room with updated list.
 
-- **send_message**: Send a message to a room.
+- **send_message**: Send a text message to a room.
 
   - Payload: `{ roomId: string, username: string, message: string }`
   - Emits: `receive_message` to all in room with message data.
+
+- **send_voice_message**: Send a voice message to a room.
+
+  - Payload: `{ roomId: string, username: string, url: string }`
+  - Emits: `receive_voice_message` to all in room with message data.
 
 - **disconnect**: Handle user disconnection.
   - Automatically removes user from online lists and emits `online_users`.
 
 ### Listening Events
 
-- **receive_message**: Listen for incoming messages.
+- **receive_message**: Listen for incoming text messages.
 
   - Data: `{ username: string, message: string, type: string }`
+
+- **receive_voice_message**: Listen for incoming voice messages.
+
+  - Data: `{ username: string, message: string, type: string, url: string }`
 
 - **online_users**: Listen for updates to online users in the room.
   - Data: Array of usernames (e.g., `["user1", "user2"]`)
@@ -142,9 +194,11 @@ The backend uses Socket.IO for real-time communication. Connect to the server us
 ```
 src/
 ├── config/
-│   └── env.ts          # Environment configuration
+│   ├── env.ts          # Environment configuration
+│   └── gridfs.ts       # GridFS storage configuration for voice messages
 ├── controllers/
-│   └── roomController.ts  # Room-related logic
+│   ├── roomController.ts  # Room-related logic
+│   └── voiceController.ts # Voice message retrieval logic
 ├── models/
 │   └── Room.ts         # Mongoose schema for Room
 ├── routes/

@@ -36,6 +36,18 @@ export const initSocket = (server: any) => {
       io.in(roomId).emit("receive_message", msgData);
     });
 
+    socket.on("send_voice_message", async ({ roomId, username, url }) => {
+      const msgData = {
+        username,
+        message: "Voice message",
+        type: "voice",
+        url,
+      };
+      await Room.findOneAndUpdate({ roomId }, { $push: { messages: msgData } });
+
+      io.in(roomId).emit("receive_voice_message", msgData);
+    });
+
     socket.on("disconnect", () => {
       const username = socket.data.username;
       if (username) {

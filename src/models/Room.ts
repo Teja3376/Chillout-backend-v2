@@ -4,6 +4,7 @@ const messageSchema = new Schema({
   username: String,
   message: String,
   type: { type: String, default: "text" },
+  url: { type: String, default: null }, // For voice messages, store the file path
   createdAt: { type: Date, default: Date.now },
 });
 
