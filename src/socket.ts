@@ -15,6 +15,7 @@ export const initSocket = (server: any) => {
     socket.on("join_room", async ({ roomId, username }) => {
       socket.join(roomId);
       socket.data.username = username; // Store username in socket data for disconnect handling
+      socket.data.roomId = roomId;
 
       // Add user to the room's online users set
       if (!onlineUsersPerRoom.has(roomId)) {
@@ -48,16 +49,53 @@ export const initSocket = (server: any) => {
       io.in(roomId).emit("receive_voice_message", msgData);
     });
 
+    // --- WebRTC Signaling Events ---
+
+    socket.on("join_call", ({ roomId, username }) => {
+      console.log(`${username} joining call in ${roomId}`);
+      // Broadcast to others in the room that a user joined the call
+      socket.to(roomId).emit("user_joined_call", { socketId: socket.id, username });
+    });
+
+    socket.on("offer", ({ to, offer, username }) => {
+      console.log(`Sending offer from ${socket.id} to ${to}`);
+      io.to(to).emit("offer", { from: socket.id, offer, username });
+    });
+
+    socket.on("answer", ({ to, answer, username }) => {
+      console.log(`Sending answer from ${socket.id} to ${to}`);
+      io.to(to).emit("answer", { from: socket.id, answer, username });
+    });
+
+    socket.on("ice_candidate", ({ to, candidate }) => {
+      console.log(`Sending ICE candidate from ${socket.id} to ${to}`);
+      io.to(to).emit("ice_candidate", { from: socket.id, candidate });
+    });
+
+    socket.on("leave_call", ({ roomId }) => {
+      console.log(`${socket.data.username} leaving call in ${roomId}`);
+      socket.to(roomId).emit("user_left_call", { socketId: socket.id });
+    });
+
+    // -------------------------------
+
     socket.on("disconnect", () => {
       const username = socket.data.username;
+      const roomId = socket.data.roomId; // We need to store roomId on socket.data to access it here efficiently if possible, or iterate
+      
       if (username) {
-        // Remove user from all rooms they were in
-        for (const [roomId, users] of onlineUsersPerRoom.entries()) {
+        // Remove user from all rooms they were in (using the map iteration as before is fine, but we can optimize if we stored roomId)
+        // Keeping original logic for safety + adding call cleanup
+        
+        for (const [rId, users] of onlineUsersPerRoom.entries()) {
           if (users.has(username)) {
             users.delete(username);
             // Emit updated online users list to the room
             const onlineUsers = Array.from(users);
-            io.in(roomId).emit("online_users", onlineUsers);
+            io.in(rId).emit("online_users", onlineUsers);
+            
+            // Also emit user_left_call just in case they disconnected while in a call
+            io.in(rId).emit("user_left_call", { socketId: socket.id });
           }
         }
       }
