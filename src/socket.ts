@@ -32,7 +32,13 @@ export const initSocket = (server: any) => {
 
     socket.on("send_message", async ({ roomId, username, message }) => {
       const msgData = { username, message, type: "text" };
-      await Room.findOneAndUpdate({ roomId }, { $push: { messages: msgData } });
+      await Room.findOneAndUpdate(
+        { roomId },
+        { 
+          $push: { messages: msgData },
+          $set: { lastActivity: new Date() }
+        }
+      );
 
       io.in(roomId).emit("receive_message", msgData);
     });
@@ -44,7 +50,13 @@ export const initSocket = (server: any) => {
         type: "voice",
         url,
       };
-      await Room.findOneAndUpdate({ roomId }, { $push: { messages: msgData } });
+      await Room.findOneAndUpdate(
+        { roomId },
+        { 
+          $push: { messages: msgData },
+          $set: { lastActivity: new Date() }
+        }
+      );
 
       io.in(roomId).emit("receive_voice_message", msgData);
     });

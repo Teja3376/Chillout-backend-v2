@@ -11,6 +11,10 @@ const messageSchema = new Schema({
 const roomSchema = new Schema({
   roomId: { type: String, unique: true },
   messages: [messageSchema],
+  lastActivity: { type: Date, default: Date.now }, // Track last activity for TTL
 });
+
+// TTL index: automatically delete rooms after 30 days (2592000 seconds) of inactivity
+roomSchema.index({ lastActivity: 1 }, { expireAfterSeconds: 2592000 });
 
 export const Room = model("Room", roomSchema);

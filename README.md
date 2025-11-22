@@ -13,6 +13,10 @@ Chillout Backend v2 is a Node.js-based backend service for a real-time chat appl
   - Join/leave call events
   - WebRTC offer/answer/ICE candidate exchange
   - Call notification messages in chat
+- **Automatic Room Cleanup**: Rooms are automatically deleted after 30 days of inactivity
+  - Uses MongoDB TTL (Time To Live) index
+  - Activity tracked on every message sent
+  - Keeps database clean and optimized
 - Track online users per room
 - CORS support for cross-origin requests
 - Environment-based configuration
@@ -51,10 +55,12 @@ Chillout Backend v2 is a Node.js-based backend service for a real-time chat appl
 3. Create a `.env` file in the root directory with the following variables:
 
    ```
-   MONGO_URI=your_mongodb_connection_string
+   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/chillout?retryWrites=true&w=majority
    FRONTEND_URL=http://localhost:3000
    PORT=5000
    ```
+
+   **Note**: Replace `chillout` in the MONGO_URI with your desired database name. The `/chillout` part specifies which database to use in your MongoDB cluster.
 
 4. Start the development server:
 
