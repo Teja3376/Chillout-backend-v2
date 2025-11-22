@@ -9,6 +9,10 @@ Chillout Backend v2 is a Node.js-based backend service for a real-time chat appl
 - Create or retrieve chat rooms by room ID
 - Real-time messaging within rooms (text and voice)
 - Voice message upload and retrieval using MongoDB GridFS
+- **Group Audio Calls**: WebRTC signaling for peer-to-peer audio calls
+  - Join/leave call events
+  - WebRTC offer/answer/ICE candidate exchange
+  - Call notification messages in chat
 - Track online users per room
 - CORS support for cross-origin requests
 - Environment-based configuration
@@ -167,8 +171,33 @@ The backend uses Socket.IO for real-time communication. Connect to the server us
   - Payload: `{ roomId: string, username: string, url: string }`
   - Emits: `receive_voice_message` to all in room with message data.
 
+- **join_call**: Join an audio call in a room.
+
+  - Payload: `{ roomId: string, username: string }`
+  - Emits: `user_joined_call` to others in room, `call_notification` to all.
+
+- **leave_call**: Leave an audio call.
+
+  - Payload: `{ roomId: string, username: string }`
+  - Emits: `user_left_call` to others in room, `call_ended_notification` to all.
+
+- **offer**: Send WebRTC offer for peer connection.
+
+  - Payload: `{ to: string, offer: RTCSessionDescriptionInit, username: string }`
+  - Emits: `offer` to target peer.
+
+- **answer**: Send WebRTC answer for peer connection.
+
+  - Payload: `{ to: string, answer: RTCSessionDescriptionInit, username: string }`
+  - Emits: `answer` to target peer.
+
+- **ice_candidate**: Send ICE candidate for peer connection.
+
+  - Payload: `{ to: string, candidate: RTCIceCandidateInit }`
+  - Emits: `ice_candidate` to target peer.
+
 - **disconnect**: Handle user disconnection.
-  - Automatically removes user from online lists and emits `online_users`.
+  - Automatically removes user from online lists and emits `online_users` and `user_left_call`.
 
 ### Listening Events
 
@@ -181,7 +210,35 @@ The backend uses Socket.IO for real-time communication. Connect to the server us
   - Data: `{ username: string, message: string, type: string, url: string }`
 
 - **online_users**: Listen for updates to online users in the room.
+
   - Data: Array of usernames (e.g., `["user1", "user2"]`)
+
+- **user_joined_call**: Listen for users joining the call.
+
+  - Data: `{ socketId: string, username: string }`
+
+- **user_left_call**: Listen for users leaving the call.
+
+  - Data: `{ socketId: string }`
+
+- **call_notification**: Listen for call join notifications in chat.
+
+  - Data: `{ username: string, message: string, type: string, callInitiator: string }`
+
+- **call_ended_notification**: Listen for call leave notifications in chat.
+
+  - Data: `{ username: string, message: string, type: string }`
+
+- **offer**: Listen for WebRTC offers from peers.
+
+  - Data: `{ from: string, offer: RTCSessionDescriptionInit, username: string }`
+
+- **answer**: Listen for WebRTC answers from peers.
+
+  - Data: `{ from: string, answer: RTCSessionDescriptionInit, username: string }`
+
+- **ice_candidate**: Listen for ICE candidates from peers.
+  - Data: `{ from: string, candidate: RTCIceCandidateInit }`
 
 ## Environment Variables
 

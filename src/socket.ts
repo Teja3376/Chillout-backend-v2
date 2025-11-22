@@ -51,8 +51,19 @@ export const initSocket = (server: any) => {
 
     // --- WebRTC Signaling Events ---
 
-    socket.on("join_call", ({ roomId, username }) => {
+    socket.on("join_call", async ({ roomId, username }) => {
       console.log(`${username} joining call in ${roomId}`);
+      
+      // Send call notification message to chat
+      const callNotification = {
+        username: "System",
+        message: `${username} is in the audio call`,
+        type: "call_notification",
+        callInitiator: username,
+      };
+      await Room.findOneAndUpdate({ roomId }, { $push: { messages: callNotification } });
+      io.in(roomId).emit("call_notification", callNotification);
+      
       // Broadcast to others in the room that a user joined the call
       socket.to(roomId).emit("user_joined_call", { socketId: socket.id, username });
     });
@@ -72,8 +83,18 @@ export const initSocket = (server: any) => {
       io.to(to).emit("ice_candidate", { from: socket.id, candidate });
     });
 
-    socket.on("leave_call", ({ roomId }) => {
-      console.log(`${socket.data.username} leaving call in ${roomId}`);
+    socket.on("leave_call", async ({ roomId, username }) => {
+      console.log(`${username} leaving call in ${roomId}`);
+      
+      // Send call ended notification to chat
+      const callEndedNotification = {
+        username: "System",
+        message: `${username} left the audio call`,
+        type: "call_ended",
+      };
+      await Room.findOneAndUpdate({ roomId }, { $push: { messages: callEndedNotification } });
+      io.in(roomId).emit("call_ended_notification", callEndedNotification);
+      
       socket.to(roomId).emit("user_left_call", { socketId: socket.id });
     });
 
