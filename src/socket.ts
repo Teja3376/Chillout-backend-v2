@@ -61,6 +61,36 @@ export const initSocket = (server: any) => {
       io.in(roomId).emit("receive_voice_message", msgData);
     });
 
+    socket.on("send_image_message", async ({ roomId, username, url }) => {
+      const msgData = {
+        username,
+        message: "Image message",
+        type: "image",
+        url,
+      };
+      await Room.findOneAndUpdate(
+        { roomId },
+        { 
+          $push: { messages: msgData },
+          $set: { lastActivity: new Date() }
+        }
+      );
+
+      io.in(roomId).emit("receive_image_message", msgData);
+    });
+
+    socket.on("delete_message", async ({ roomId, messageId }) => {
+      try {
+        await Room.findOneAndUpdate(
+          { roomId },
+          { $pull: { messages: { _id: messageId } } }
+        );
+        io.in(roomId).emit("message_deleted", { messageId });
+      } catch (error) {
+        console.error("Error deleting message:", error);
+      }
+    });
+
     // --- WebRTC Signaling Events ---
 
     socket.on("join_call", async ({ roomId, username }) => {

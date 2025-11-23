@@ -45,3 +45,31 @@ export const uploadVoice = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Failed to upload voice file" });
   }
 };
+
+export const uploadImage = async (req: Request, res: Response) => {
+  const { roomId } = req.params;
+  const { username } = req.body;
+
+  if (!req.file) {
+    return res.status(400).json({ error: "No image file provided" });
+  }
+
+  try {
+    const fileId = (req.file as any).id;
+    const imageUrl = `/api/image/${fileId}`;
+
+    const msgData = {
+      username,
+      message: "Image message",
+      type: "image",
+      url: imageUrl,
+    };
+
+    await Room.findOneAndUpdate({ roomId }, { $push: { messages: msgData } });
+
+    return res.status(200).json({ url: imageUrl });
+  } catch (error) {
+    console.error("GridFS upload error:", error);
+    return res.status(500).json({ error: "Failed to upload image file" });
+  }
+};

@@ -15,9 +15,14 @@ class GridFsStorage {
       bucketName: this.bucketName,
     });
 
-    const filename = `voice-${Date.now()}-${Math.round(
-      Math.random() * 1e9
-    )}.webm`;
+    let filename;
+    if (this.bucketName === "voices") {
+      filename = `voice-${Date.now()}-${Math.round(Math.random() * 1e9)}.webm`;
+    } else {
+      const ext = file.originalname.split(".").pop();
+      filename = `image-${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
+    }
+
     const uploadStream = bucket.openUploadStream(filename, {
       contentType: file.mimetype,
     });
@@ -53,4 +58,8 @@ class GridFsStorage {
 // Initialize GridFS storage for multer
 export const createGridFsStorage = () => {
   return new (GridFsStorage as any)({ bucketName: "voices" });
+};
+
+export const createImageGridFsStorage = () => {
+  return new (GridFsStorage as any)({ bucketName: "images" });
 };
