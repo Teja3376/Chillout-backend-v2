@@ -58,15 +58,9 @@ export const uploadImage = async (req: Request, res: Response) => {
     const fileId = (req.file as any).id;
     const imageUrl = `/api/image/${fileId}`;
 
-    const msgData = {
-      username,
-      message: "Image message",
-      type: "image",
-      url: imageUrl,
-    };
-
-    await Room.findOneAndUpdate({ roomId }, { $push: { messages: msgData } });
-
+    // Don't save to database here - let the socket handler do it
+    // This prevents duplicate messages
+    
     return res.status(200).json({ url: imageUrl });
   } catch (error) {
     console.error("GridFS upload error:", error);

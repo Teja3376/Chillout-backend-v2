@@ -32,15 +32,19 @@ export const initSocket = (server: any) => {
 
     socket.on("send_message", async ({ roomId, username, message }) => {
       const msgData = { username, message, type: "text" };
-      await Room.findOneAndUpdate(
+      const updatedRoom = await Room.findOneAndUpdate(
         { roomId },
         { 
           $push: { messages: msgData },
           $set: { lastActivity: new Date() }
-        }
+        },
+        { new: true }
       );
 
-      io.in(roomId).emit("receive_message", msgData);
+      // Get the last message (the one we just added) with its _id
+      const savedMessage = updatedRoom?.messages[updatedRoom.messages.length - 1];
+
+      io.in(roomId).emit("receive_message", savedMessage);
     });
 
     socket.on("send_voice_message", async ({ roomId, username, url }) => {
@@ -50,15 +54,18 @@ export const initSocket = (server: any) => {
         type: "voice",
         url,
       };
-      await Room.findOneAndUpdate(
+      const updatedRoom = await Room.findOneAndUpdate(
         { roomId },
         { 
           $push: { messages: msgData },
           $set: { lastActivity: new Date() }
-        }
+        },
+        { new: true }
       );
 
-      io.in(roomId).emit("receive_voice_message", msgData);
+      const savedMessage = updatedRoom?.messages[updatedRoom.messages.length - 1];
+
+      io.in(roomId).emit("receive_voice_message", savedMessage);
     });
 
     socket.on("send_image_message", async ({ roomId, username, url }) => {
@@ -68,15 +75,22 @@ export const initSocket = (server: any) => {
         type: "image",
         url,
       };
-      await Room.findOneAndUpdate(
+      const updatedRoom = await Room.findOneAndUpdate(
         { roomId },
         { 
           $push: { messages: msgData },
           $set: { lastActivity: new Date() }
-        }
+        },
+        { new: true }
       );
 
-      io.in(roomId).emit("receive_image_message", msgData);
+      const savedMessage = updatedRoom?.messages[updatedRoom.messages.length - 1];
+
+      // Broadcast to others in the room (not the sender)
+      socket.broadcast.to(roomId).emit("receive_image_message", savedMessage);
+      
+      // Send back to sender with their own message
+      socket.emit("receive_image_message", savedMessage);
     });
 
     socket.on("delete_message", async ({ roomId, messageId }) => {
